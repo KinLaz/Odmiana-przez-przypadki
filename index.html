@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Przypadkowa przygoda – odmiana przez przypadki</title>
+<style>
+  :root{
+    --bg:#fff8ec; --ink:#2d2a32; --muted:#6b6672; --card:#ffffff;
+    --M:#ef476f; --D:#f78c1f; --C:#e8b400; --B:#06a77d; --N:#118ab2; --Ms:#7b4fd6; --W:#d6336c;
+    --ok:#06a77d; --bad:#e63946; --radius:18px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Segoe UI",Roboto,system-ui,sans-serif;background:var(--bg);color:var(--ink);
+       background-image:radial-gradient(#ffe3b3 1.5px,transparent 1.5px);background-size:22px 22px}
+  .wrap{max-width:860px;margin:0 auto;padding:18px 14px 40px}
+  header{text-align:center;margin-bottom:14px}
+  h1{font-size:clamp(1.6rem,4vw,2.4rem);margin:.2em 0}
+  h1 span{display:inline-block}
+  .sub{color:var(--muted);margin:0}
+  .card{background:var(--card);border-radius:var(--radius);box-shadow:0 6px 0 #00000014,0 1px 8px #0000000d;padding:20px;margin:14px 0}
+  .menu{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+  .menu .wide{grid-column:1/-1}
+  @media (min-width:700px){.menu{grid-template-columns:repeat(4,1fr);gap:14px}}
+  .tile{border:none;border-radius:var(--radius);padding:20px 14px;font-size:1.1rem;font-weight:700;color:#fff;cursor:pointer;
+        box-shadow:0 6px 0 #0000002a;transition:transform .1s;text-align:center;line-height:1.3}
+  .tile small{display:block;font-weight:400;font-size:.85rem;opacity:.95;margin-top:6px}
+  .tile .ico{font-size:2.2rem;display:block;margin-bottom:6px}
+  .tile:active{transform:translateY(4px);box-shadow:0 2px 0 #0000002a}
+  .opts{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:12px;color:var(--muted)}
+  .opts label{background:#fff;padding:8px 14px;border-radius:999px;cursor:pointer;box-shadow:0 2px 0 #0000001a}
+  .btn{border:none;border-radius:14px;padding:12px 18px;font-size:1rem;font-weight:700;cursor:pointer;background:#2d2a32;color:#fff;box-shadow:0 4px 0 #0000003a}
+  .btn.light{background:#fff;color:var(--ink);box-shadow:0 4px 0 #0000001f}
+  .btn:active{transform:translateY(3px);box-shadow:0 1px 0 #0000003a}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+  .hud{display:flex;gap:14px;font-weight:700;flex-wrap:wrap}
+  .pill{background:#fff;border-radius:999px;padding:6px 12px;box-shadow:0 2px 0 #0000001a}
+  .progress{height:10px;background:#0000000f;border-radius:99px;overflow:hidden;margin:12px 0}
+  .progress div{height:100%;background:linear-gradient(90deg,var(--M),var(--C),var(--B),var(--N),var(--Ms));transition:width .3s}
+  .question{font-size:clamp(1.25rem,3.2vw,1.7rem);text-align:center;margin:10px 0 18px;line-height:1.5}
+  .hl{background:#ffe066;padding:1px 8px;border-radius:8px;font-weight:800;border-bottom:3px solid #e8b400}
+  .frame{text-align:center;color:var(--muted);margin:-8px 0 16px;font-size:1.05rem}
+  .answers{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+  .ans{border:3px solid transparent;border-radius:14px;padding:14px 10px;font-size:1.08rem;font-weight:700;cursor:pointer;color:#fff;box-shadow:0 4px 0 #0000002a;line-height:1.25}
+  .ans.plain{background:#fff;color:var(--ink);border-color:#e7e1d6}
+  .ans small{display:block;font-weight:400;font-size:.82rem;opacity:.95}
+  .ans:disabled{cursor:default}
+  .ans.right{outline:4px solid var(--ok);outline-offset:2px;transform:scale(1.03)}
+  .ans.wrong{opacity:.45;text-decoration:line-through}
+  .ans.dim{opacity:.35}
+  .feedback{margin-top:16px;padding:14px 16px;border-radius:14px;font-size:1.05rem;display:none;line-height:1.45}
+  .feedback.ok{display:block;background:#e3f8ef;border:2px solid var(--ok)}
+  .feedback.bad{display:block;background:#fdecee;border:2px solid var(--bad)}
+  .center{text-align:center}
+  .big{font-size:3rem;margin:6px 0}
+  table{border-collapse:collapse;width:100%;font-size:1rem}
+  th,td{padding:9px 8px;border-bottom:1px solid #eee5d6;text-align:left;vertical-align:top}
+  th{font-size:.85rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+  .case-name{font-weight:800;white-space:nowrap}
+  .dot{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:6px;vertical-align:middle}
+  .scroll{overflow-x:auto}
+  .tip{background:#fff4d6;border-left:6px solid var(--C);padding:12px 14px;border-radius:10px;margin:12px 0}
+  .mnemo{font-size:1.15rem;text-align:center;line-height:1.8}
+  .mnemo b{font-size:1.4rem}
+  h2{margin:.2em 0 .5em}
+  .mistakes{text-align:left;margin-top:12px}
+  .mistakes li{margin:6px 0}
+  .confetti{position:fixed;top:-30px;font-size:26px;pointer-events:none;animation:fall 2.2s linear forwards}
+  @keyframes fall{to{transform:translateY(110vh) rotate(540deg)}}
+  @media (max-width:600px){
+    .wrap{padding:12px 10px 30px}
+    h1{font-size:1.45rem}
+    .card{padding:14px}
+    .tile{padding:14px 8px;font-size:1rem}
+    .tile .ico{font-size:1.8rem;margin-bottom:4px}
+    .tile small{font-size:.75rem}
+    table{font-size:.82rem}
+    th,td{padding:7px 3px}
+    th{font-size:.7rem}
+    .mnemo{font-size:1rem}.mnemo b{font-size:1.2rem}
+    .answers{grid-template-columns:1fr 1fr}
+    .opt{display:none}
+    .ans{padding:12px 6px;font-size:1rem}
+  }
+  @media print{
+    body{background:#fff}.no-print{display:none!important}.card{box-shadow:none;border:1px solid #ccc}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1><span>🎒</span> Przypadkowa przygoda <span>🦉</span></h1>
+    <p class="sub">Ćwiczymy odmianę rzeczownika przez przypadki · każdy quiz to 10 losowych pytań</p>
+  </header>
+  <main id="app"></main>
+</div>
+
+<script>
+/* ======== DANE ======== */
+const CASES = [
+  {id:'M',  name:'Mianownik',   q:'kto? co?'},
+  {id:'D',  name:'Dopełniacz',  q:'kogo? czego?'},
+  {id:'C',  name:'Celownik',    q:'komu? czemu?'},
+  {id:'B',  name:'Biernik',     q:'kogo? co?'},
+  {id:'N',  name:'Narzędnik',   q:'(z) kim? (z) czym?'},
+  {id:'Ms', name:'Miejscownik', q:'o kim? o czym?'},
+  {id:'W',  name:'Wołacz',      q:'o!'}
+];
+const caseById = id => CASES.find(c => c.id === id);
+const color = id => `var(--${id})`;
+
+// Formy: M, D, C, B, N, Ms, W
+const NOUNS = [
+  {w:'kot',      sg:['kot','kota','kotu','kota','kotem','kocie','kocie'],              pl:['koty','kotów','kotom','koty','kotami','kotach','koty']},
+  {w:'pies',     sg:['pies','psa','psu','psa','psem','psie','psie'],                   pl:['psy','psów','psom','psy','psami','psach','psy']},
+  {w:'mama',     sg:['mama','mamy','mamie','mamę','mamą','mamie','mamo'],              pl:['mamy','mam','mamom','mamy','mamami','mamach','mamy']},
+  {w:'szkoła',   sg:['szkoła','szkoły','szkole','szkołę','szkołą','szkole','szkoło'],  pl:['szkoły','szkół','szkołom','szkoły','szkołami','szkołach','szkoły']},
+  {w:'okno',     sg:['okno','okna','oknu','okno','oknem','oknie','okno'],              pl:['okna','okien','oknom','okna','oknami','oknach','okna']},
+  {w:'dom',      sg:['dom','domu','domowi','dom','domem','domu','domu'],               pl:['domy','domów','domom','domy','domami','domach','domy']},
+  {w:'książka',  sg:['książka','książki','książce','książkę','książką','książce','książko'], pl:['książki','książek','książkom','książki','książkami','książkach','książki']},
+  {w:'koń',      sg:['koń','konia','koniowi','konia','koniem','koniu','koniu'],        pl:['konie','koni','koniom','konie','końmi','koniach','konie']},
+  {w:'drzewo',   sg:['drzewo','drzewa','drzewu','drzewo','drzewem','drzewie','drzewo'],pl:['drzewa','drzew','drzewom','drzewa','drzewami','drzewach','drzewa']},
+  {w:'ołówek',   sg:['ołówek','ołówka','ołówkowi','ołówek','ołówkiem','ołówku','ołówku'], pl:['ołówki','ołówków','ołówkom','ołówki','ołówkami','ołówkach','ołówki']},
+  {w:'rzeka',    sg:['rzeka','rzeki','rzece','rzekę','rzeką','rzece','rzeko'],         pl:['rzeki','rzek','rzekom','rzeki','rzekami','rzekach','rzeki']},
+  {w:'kolega',   sg:['kolega','kolegi','koledze','kolegę','kolegą','koledze','kolego'],pl:['koledzy','kolegów','kolegom','kolegów','kolegami','kolegach','koledzy']},
+  {w:'dziecko',  sg:['dziecko','dziecka','dziecku','dziecko','dzieckiem','dziecku','dziecko'], pl:['dzieci','dzieci','dzieciom','dzieci','dziećmi','dzieciach','dzieci']},
+  {w:'las',      sg:['las','lasu','lasowi','las','lasem','lesie','lesie'],             pl:['lasy','lasów','lasom','lasy','lasami','lasach','lasy']},
+  {w:'morze',    sg:['morze','morza','morzu','morze','morzem','morzu','morze'],        pl:['morza','mórz','morzom','morza','morzami','morzach','morza']},
+  {w:'babcia',   sg:['babcia','babci','babci','babcię','babcią','babci','babciu'],     pl:['babcie','babć','babciom','babcie','babciami','babciach','babcie']},
+  {w:'statek',   sg:['statek','statku','statkowi','statek','statkiem','statku','statku'], pl:['statki','statków','statkom','statki','statkami','statkach','statki']},
+  {w:'brat',     sg:['brat','brata','bratu','brata','bratem','bracie','bracie'],       pl:['bracia','braci','braciom','braci','braćmi','braciach','bracia']},
+  {w:'siostra',  sg:['siostra','siostry','siostrze','siostrę','siostrą','siostrze','siostro'], pl:['siostry','sióstr','siostrom','siostry','siostrami','siostrach','siostry']},
+  {w:'miasto',   sg:['miasto','miasta','miastu','miasto','miastem','mieście','miasto'],pl:['miasta','miast','miastom','miasta','miastami','miastach','miasta']},
+  {w:'kwiat',    sg:['kwiat','kwiatu','kwiatowi','kwiat','kwiatem','kwiecie','kwiecie'], pl:['kwiaty','kwiatów','kwiatom','kwiaty','kwiatami','kwiatach','kwiaty']},
+  {w:'nauczyciel', sg:['nauczyciel','nauczyciela','nauczycielowi','nauczyciela','nauczycielem','nauczycielu','nauczycielu'], pl:['nauczyciele','nauczycieli','nauczycielom','nauczycieli','nauczycielami','nauczycielach','nauczyciele']},
+  {w:'lekcja',   sg:['lekcja','lekcji','lekcji','lekcję','lekcją','lekcji','lekcjo'],  pl:['lekcje','lekcji','lekcjom','lekcje','lekcjami','lekcjach','lekcje']},
+  {w:'zeszyt',   sg:['zeszyt','zeszytu','zeszytowi','zeszyt','zeszytem','zeszycie','zeszycie'], pl:['zeszyty','zeszytów','zeszytom','zeszyty','zeszytami','zeszytach','zeszyty']},
+  {w:'ptak',     sg:['ptak','ptaka','ptakowi','ptaka','ptakiem','ptaku','ptaku'],      pl:['ptaki','ptaków','ptakom','ptaki','ptakami','ptakach','ptaki']},
+  {w:'noc',      sg:['noc','nocy','nocy','noc','nocą','nocy','nocy'],                  pl:['noce','nocy','nocom','noce','nocami','nocach','noce']},
+  {w:'zwierzę',  sg:['zwierzę','zwierzęcia','zwierzęciu','zwierzę','zwierzęciem','zwierzęciu','zwierzę'], pl:['zwierzęta','zwierząt','zwierzętom','zwierzęta','zwierzętami','zwierzętach','zwierzęta']},
+  {w:'jabłko',   sg:['jabłko','jabłka','jabłku','jabłko','jabłkiem','jabłku','jabłko'],pl:['jabłka','jabłek','jabłkom','jabłka','jabłkami','jabłkach','jabłka']},
+  {w:'ławka',    sg:['ławka','ławki','ławce','ławkę','ławką','ławce','ławko'],         pl:['ławki','ławek','ławkom','ławki','ławkami','ławkach','ławki']},
+  {w:'chłopiec', sg:['chłopiec','chłopca','chłopcu','chłopca','chłopcem','chłopcu','chłopcze'], pl:['chłopcy','chłopców','chłopcom','chłopców','chłopcami','chłopcach','chłopcy']},
+  {w:'dziewczynka', sg:['dziewczynka','dziewczynki','dziewczynce','dziewczynkę','dziewczynką','dziewczynce','dziewczynko'], pl:['dziewczynki','dziewczynek','dziewczynkom','dziewczynki','dziewczynkami','dziewczynkach','dziewczynki']},
+  {w:'słońce',   sg:['słońce','słońca','słońcu','słońce','słońcem','słońcu','słońce'], pl:['słońca','słońc','słońcom','słońca','słońcami','słońcach','słońca']}
+];
+const FRAMES = {
+  sg:['To jest ___.','Nie ma ___.','Przyglądam się ___.','Widzę ___.','Interesuję się ___.','Myślę o ___.','O, ___!'],
+  pl:['To są ___.','Nie ma ___.','Przyglądam się ___.','Widzę ___.','Interesuję się ___.','Myślę o ___.','O, ___!']
+};
+
+const SENTENCES = [
+  {s:'[Kot] śpi na kanapie.', c:'M', h:'Kto śpi na kanapie? → kot'},
+  {s:'Nie mam [długopisu].', c:'D', h:'Nie mam kogo? czego? → długopisu'},
+  {s:'Daję prezent [mamie].', c:'C', h:'Daję prezent komu? → mamie'},
+  {s:'Widzę [psa] w ogrodzie.', c:'B', h:'Widzę kogo? co? → psa'},
+  {s:'Idę na spacer z [babcią].', c:'N', h:'Idę z kim? → z babcią'},
+  {s:'Myślę o [wakacjach].', c:'Ms', h:'Myślę o czym? → o wakacjach'},
+  {s:'[Marcelino], chodź na obiad!', c:'W', h:'Wołamy kogoś: o, Marcelino!'},
+  {s:'Na stole leży [książka].', c:'M', h:'Co leży na stole? → książka'},
+  {s:'Szukam [klucza].', c:'D', h:'Szukam kogo? czego? → klucza'},
+  {s:'Pomagam [koledze] w lekcjach.', c:'C', h:'Pomagam komu? → koledze'},
+  {s:'Czytam ciekawą [książkę].', c:'B', h:'Czytam kogo? co? → książkę'},
+  {s:'Tata jest [lekarzem].', c:'N', h:'Tata jest kim? → lekarzem'},
+  {s:'Opowiadam o [wycieczce].', c:'Ms', h:'Opowiadam o czym? → o wycieczce'},
+  {s:'[Mamo], gdzie są moje buty?', c:'W', h:'Zwracamy się do kogoś: o, mamo!'},
+  {s:'W [lesie] rosną grzyby.', c:'Ms', h:'W czym rosną grzyby? (jak: o czym?) → w lesie'},
+  {s:'Boję się [burzy].', c:'D', h:'Boję się kogo? czego? → burzy'},
+  {s:'Dziękuję [pani] za pomoc.', c:'C', h:'Dziękuję komu? → pani'},
+  {s:'Lubię [lody] czekoladowe.', c:'B', h:'Lubię kogo? co? → lody'},
+  {s:'Piszę [ołówkiem].', c:'N', h:'Piszę czym? → ołówkiem'},
+  {s:'Pływamy w [morzu].', c:'Ms', h:'W czym pływamy? (jak: o czym?) → w morzu'},
+  {s:'[Słońce] świeci jasno.', c:'M', h:'Co świeci? → słońce'},
+  {s:'Nie ma dziś [lekcji].', c:'D', h:'Nie ma czego? → lekcji'},
+  {s:'Przyglądam się [ptakom].', c:'C', h:'Przyglądam się komu? czemu? → ptakom'},
+  {s:'Kupiliśmy nowy [rower].', c:'B', h:'Kupiliśmy kogo? co? → rower'},
+  {s:'Rysuję [kredkami].', c:'N', h:'Rysuję czym? → kredkami'},
+  {s:'Rozmawiamy o [szkole].', c:'Ms', h:'Rozmawiamy o czym? → o szkole'},
+  {s:'[Kasiu], podaj mi sól!', c:'W', h:'Zwracamy się do kogoś: o, Kasiu!'},
+  {s:'[Dzieci] bawią się na boisku.', c:'M', h:'Kto bawi się na boisku? → dzieci'},
+  {s:'Uczymy się [matematyki].', c:'D', h:'Uczymy się czego? → matematyki'},
+  {s:'Ufam [przyjaciółce].', c:'C', h:'Ufam komu? → przyjaciółce'},
+  {s:'Mam nową [sukienkę].', c:'B', h:'Mam kogo? co? → sukienkę'},
+  {s:'Interesuję się [historią].', c:'N', h:'Interesuję się czym? → historią'},
+  {s:'Siedzę na [krześle].', c:'Ms', h:'Na czym siedzę? (jak: o czym?) → na krześle'},
+  {s:'[Piesku], nie szczekaj!', c:'W', h:'Wołamy psa: o, piesku!'},
+  {s:'Jadę do [babci].', c:'D', h:'Jadę do kogo? (kogo? czego?) → do babci'},
+  {s:'Czekam na [autobus].', c:'B', h:'Czekam na kogo? na co? → na autobus'},
+  {s:'Na drzewie siedzi [wiewiórka].', c:'M', h:'Kto siedzi na drzewie? → wiewiórka'},
+  {s:'Jem zupę [łyżką].', c:'N', h:'Jem zupę czym? → łyżką'},
+  // Mianownik
+  {s:'[Pies] szczeka na listonosza.', c:'M', h:'Kto szczeka? → pies'},
+  {s:'Od rana pada [deszcz].', c:'M', h:'Co pada? → deszcz'},
+  {s:'[Nauczycielka] sprawdza zeszyty.', c:'M', h:'Kto sprawdza zeszyty? → nauczycielka'},
+  {s:'Na łące rosną [kwiaty].', c:'M', h:'Co rośnie na łące? → kwiaty'},
+  {s:'Mój [brat] gra w piłkę.', c:'M', h:'Kto gra w piłkę? → brat'},
+  {s:'[Autobus] przyjechał punktualnie.', c:'M', h:'Co przyjechało? → autobus'},
+  {s:'Nasza [klasa] jedzie na wycieczkę.', c:'M', h:'Kto jedzie na wycieczkę? → klasa'},
+  {s:'W klatce siedzi [chomik].', c:'M', h:'Kto siedzi w klatce? → chomik'},
+  // Dopełniacz
+  {s:'Nie lubię [szpinaku].', c:'D', h:'Nie lubię kogo? czego? → szpinaku'},
+  {s:'Brakuje mi [czasu].', c:'D', h:'Brakuje mi kogo? czego? → czasu'},
+  {s:'Wracam ze [szkoły].', c:'D', h:'Wracam z (kogo? czego?) → ze szkoły'},
+  {s:'Potrzebuję twojej [pomocy].', c:'D', h:'Potrzebuję kogo? czego? → pomocy'},
+  {s:'Wypiłam szklankę [mleka].', c:'D', h:'Szklankę czego? → mleka'},
+  {s:'Nie widzę [tablicy].', c:'D', h:'Nie widzę kogo? czego? → tablicy (po „nie” często jest Dopełniacz!)'},
+  {s:'Dostałam list od [cioci].', c:'D', h:'Od kogo? (kogo? czego?) → od cioci'},
+  {s:'Życzę ci dużo [szczęścia].', c:'D', h:'Życzę czego? → szczęścia'},
+  {s:'Na stole nie ma [chleba].', c:'D', h:'Nie ma kogo? czego? → chleba'},
+  // Celownik
+  {s:'Pożyczam książkę [siostrze].', c:'C', h:'Pożyczam komu? → siostrze'},
+  {s:'Kibicuję naszej [drużynie].', c:'C', h:'Kibicuję komu? czemu? → drużynie'},
+  {s:'Mówię [tacie] dzień dobry.', c:'C', h:'Mówię komu? → tacie'},
+  {s:'Daję kość [psu].', c:'C', h:'Daję kość komu? → psu'},
+  {s:'Wierzę mojemu [przyjacielowi].', c:'C', h:'Wierzę komu? → przyjacielowi'},
+  {s:'Przyglądam się [obrazowi].', c:'C', h:'Przyglądam się komu? czemu? → obrazowi'},
+  {s:'Wysłałam kartkę [dziadkowi].', c:'C', h:'Wysłałam kartkę komu? → dziadkowi'},
+  {s:'Dzięki [lekarzowi] szybko wyzdrowiałam.', c:'C', h:'Dzięki komu? → lekarzowi'},
+  {s:'Podaję rękę [koleżance].', c:'C', h:'Podaję rękę komu? → koleżance'},
+  // Biernik
+  {s:'Wieczorem oglądam [film].', c:'B', h:'Oglądam kogo? co? → film'},
+  {s:'Kocham moją [mamę].', c:'B', h:'Kocham kogo? co? → mamę'},
+  {s:'Zjadłem soczyste [jabłko].', c:'B', h:'Zjadłem kogo? co? → jabłko'},
+  {s:'Rysuję [konia].', c:'B', h:'Rysuję kogo? co? → konia'},
+  {s:'Po obiedzie odrabiam [lekcje].', c:'B', h:'Odrabiam kogo? co? → lekcje'},
+  {s:'W sklepie spotkałam [koleżankę].', c:'B', h:'Spotkałam kogo? co? → koleżankę'},
+  {s:'Mama piecze [ciasto].', c:'B', h:'Mama piecze kogo? co? → ciasto'},
+  {s:'Przed jedzeniem myję [ręce].', c:'B', h:'Myję kogo? co? → ręce'},
+  {s:'Idziemy przez [park].', c:'B', h:'Przez kogo? co? → przez park'},
+  // Narzędnik
+  {s:'Do babci jadę [pociągiem].', c:'N', h:'Jadę czym? → pociągiem'},
+  {s:'Bawię się z [bratem].', c:'N', h:'Bawię się z kim? → z bratem'},
+  {s:'Kroję chleb [nożem].', c:'N', h:'Kroję czym? → nożem'},
+  {s:'W przyszłości zostanę [weterynarzem].', c:'N', h:'Zostanę kim? → weterynarzem'},
+  {s:'Pod [łóżkiem] leży kapeć.', c:'N', h:'Pod czym? (kim? czym?) → pod łóżkiem'},
+  {s:'Spacerujemy nad [rzeką].', c:'N', h:'Nad czym? (kim? czym?) → nad rzeką'},
+  {s:'Opiekuję się [chomikiem].', c:'N', h:'Opiekuję się kim? czym? → chomikiem'},
+  {s:'Piję herbatę z [cytryną].', c:'N', h:'Z czym? → z cytryną'},
+  {s:'Tęsknię za [domem].', c:'N', h:'Za czym? (kim? czym?) → za domem'},
+  // Miejscownik
+  {s:'Mieszkam w [Szczecinie].', c:'Ms', h:'W czym? (jak: o czym?) → w Szczecinie'},
+  {s:'Śpię w wygodnym [łóżku].', c:'Ms', h:'W czym? (jak: o czym?) → w łóżku'},
+  {s:'Czytam książkę o [dinozaurach].', c:'Ms', h:'O czym? → o dinozaurach'},
+  {s:'Gram na [gitarze].', c:'Ms', h:'Na czym? (jak: o czym?) → na gitarze'},
+  {s:'Książka leży na [półce].', c:'Ms', h:'Na czym? (jak: o czym?) → na półce'},
+  {s:'Jeżdżę na [rowerze].', c:'Ms', h:'Na czym? (jak: o czym?) → na rowerze'},
+  {s:'Marzę o [psie].', c:'Ms', h:'Marzę o kim? → o psie'},
+  {s:'Po [lekcjach] idę na basen.', c:'Ms', h:'Po czym? (jak: o czym?) → po lekcjach'},
+  {s:'Przy [oknie] stoi biurko.', c:'Ms', h:'Przy czym? (jak: o czym?) → przy oknie'},
+  // Wołacz
+  {s:'[Tato], pomóż mi!', c:'W', h:'Wołamy kogoś: o, tato!'},
+  {s:'[Kotku], chodź tutaj!', c:'W', h:'Wołamy kota: o, kotku!'},
+  {s:'[Olu], idziesz z nami?', c:'W', h:'Zwracamy się do kogoś: o, Olu!'},
+  {s:'[Babciu], opowiedz bajkę!', c:'W', h:'Zwracamy się do kogoś: o, babciu!'},
+  {s:'[Kolego], podaj mi piłkę!', c:'W', h:'Zwracamy się do kogoś: o, kolego!'},
+  {s:'[Dziadku], kiedy przyjedziesz?', c:'W', h:'Zwracamy się do kogoś: o, dziadku!'}
+];
+
+/* ======== NARZĘDZIA ======== */
+const $app = document.getElementById('app');
+const shuffle = a => { a = a.slice(); for (let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; };
+const pick = a => a[Math.floor(Math.random()*a.length)];
+const ROUND = 10;
+let state = {};
+let withPlural = false;
+
+function store(key, val){ try{ if(val===undefined) return JSON.parse(localStorage.getItem(key)); localStorage.setItem(key, JSON.stringify(val)); }catch(e){ return null; } }
+
+/* ======== MENU ======== */
+function menu(){
+  const best = store('pp-best') || {};
+  const b = k => best[k] ? `<small>Rekord: ${best[k]}/${ROUND} ⭐</small>` : '<small>&nbsp;</small>';
+  $app.innerHTML = `
+    <div class="menu">
+      <button class="tile wide" style="background:var(--N)" onclick="cheat()"><span class="ico">📜</span>Ściąga<small>wszystkie przypadki w jednym miejscu</small></button>
+      <button class="tile" style="background:var(--M)" onclick="start('sentence')"><span class="ico">🔍</span>Jaki to przypadek?${b('sentence')}</button>
+      <button class="tile" style="background:var(--B)" onclick="start('decline')"><span class="ico">✏️</span>Odmień wyraz${b('decline')}</button>
+      <button class="tile" style="background:var(--Ms)" onclick="start('questions')"><span class="ico">❓</span>Pytania przypadków${b('questions')}</button>
+      <button class="tile" style="background:var(--D)" onclick="start('mix')"><span class="ico">🎲</span>Mieszanka<small>wszystko naraz</small>${b('mix').replace('<small>&nbsp;</small>','')}</button>
+    </div>
+    <div class="opts">
+      <label><input type="checkbox" id="pl" ${withPlural?'checked':''} onchange="withPlural=this.checked"> w „Odmień wyraz” dodaj liczbę mnogą</label>
+    </div>`;
+}
+
+/* ======== ŚCIĄGA ======== */
+function cheat(){
+  const rows = CASES.map((c,i)=>`<tr>
+    <td class="case-name"><span class="dot" style="background:${color(c.id)}"></span>${c.name}</td>
+    <td><b>${c.q}</b></td>
+    <td>${NOUNS[0].sg[i]}</td><td>${NOUNS[2].sg[i]}</td><td class='opt'>${NOUNS[4].sg[i]}</td>
+    <td>${NOUNS[0].pl[i]}</td></tr>`).join('');
+  $app.innerHTML = `
+  <div class="card">
+    <div class="row no-print"><h2>📜 Ściąga</h2><div><button class="btn light" onclick="window.print()">🖨️ Drukuj</button> <button class="btn" onclick="menu()">← Menu</button></div></div>
+    <div class="mnemo">Jak zapamiętać kolejność?<br>
+      <b style="color:var(--M)">M</b>ama <b style="color:var(--D)">D</b>aje <b style="color:var(--C)">C</b>ukierki,
+      <b style="color:var(--B)">B</b>o <b style="color:var(--N)">N</b>ie <b style="color:var(--Ms)">M</b>a
+      <b style="color:var(--W)">W</b>afelków</div>
+    <div class="scroll"><table>
+      <tr><th>Przypadek</th><th>Pytania</th><th>kot</th><th>mama</th><th class='opt'>okno</th><th>koty (l.mn.)</th></tr>
+      ${rows}
+    </table></div>
+    <div class="tip">💡 <b>Jak rozpoznać przypadek?</b> Zadaj pytanie do wyrazu w zdaniu.<br>
+      „Daję kwiaty <u>mamie</u>” → daję <b>komu?</b> mamie → <b>Celownik</b>.</div>
+    <div class="tip">🤔 <b>Dopełniacz czy Biernik?</b> Oba mają „kogo?”. Sprawdź drugie pytanie:<br>
+      <b>czego?</b> → Dopełniacz (Nie ma <u>czego?</u> chleba)<br>
+      <b>co?</b> → Biernik (Widzę <u>co?</u> chleb)<br>
+      Pomocnik: <b>„nie ma…”</b> = Dopełniacz, <b>„widzę…”</b> = Biernik.</div>
+    <div class="tip">📍 <b>Miejscownik</b> zawsze stoi z przyimkiem: <b>o, w, na, przy, po</b> – „w lesie”, „na krześle”, „o szkole”.</div>
+    <div class="tip">📣 <b>Wołacz</b> to wołanie kogoś: „Mamo!”, „Kasiu!”, „Piesku!”. W zdaniu oddzielamy go przecinkiem.</div>
+  </div>`;
+}
+
+/* ======== GRA ======== */
+function start(mode){
+  state = {mode, i:0, score:0, streak:0, best:0, mistakes:[], qs:buildQuestions(mode)};
+  ask();
+}
+
+function buildQuestions(mode, n=ROUND){
+  if(mode==='mix'){
+    // mieszanka: po kilka z każdego rodzaju, potem tasowanie
+    return shuffle([...buildQuestions('sentence',4), ...buildQuestions('decline',3), ...buildQuestions('questions',3)]).slice(0,n);
+  }
+  if(mode==='sentence'){
+    return shuffle(SENTENCES).slice(0,n).map(x=>{
+      const html = x.s.replace(/\[(.+?)\]/, '<span class="hl">$1</span>');
+      const opts = CASES.map(c=>({label:c.name, sub:c.q, val:c.id, col:c.id}));
+      return {prompt:html, frame:'Jaki to przypadek?', opts, correct:x.c,
+              explain:`${x.h} → <b>${caseById(x.c).name}</b>`,
+              mistake:`${x.s.replace(/[\[\]]/g,'')} – ${caseById(x.c).name}`};
+    });
+  }
+  if(mode==='decline'){
+    // każdy wyraz najwyżej raz w quizie, przypadki rozłożone równo
+    const caseOrder = shuffle([...Array(7).keys(), ...Array(7).keys()]);
+    return shuffle(NOUNS).slice(0,n).map((nn,k)=>{
+      const num = withPlural && Math.random()<.5 ? 'pl' : 'sg';
+      const ci = caseOrder[k % caseOrder.length];
+      const c = CASES[ci];
+      const right = nn[num][ci];
+      const pool = shuffle([...new Set([...nn.sg, ...nn.pl])].filter(f=>f!==right)).slice(0,3);
+      const opts = shuffle([right,...pool]).map(f=>({label:f, val:f, plain:true}));
+      const numTxt = num==='pl' ? ' <small>(liczba mnoga)</small>' : '';
+      return {prompt:`Wyraz <span class="hl">${nn.w}</span>${numTxt}<br><span style="color:${color(c.id)}">${c.name}</span> – ${c.q}`,
+               frame:FRAMES[num][ci].replace('___','____'), opts, correct:right,
+               explain:`${c.name} (${c.q}): <b>${FRAMES[num][ci].replace('___',right)}</b>`,
+               mistake:`${nn.w}${num==='pl'?' (l.mn.)':''} – ${c.name}: ${right}`};
+    });
+  }
+  // questions: 14 różnych pytań (7 przypadków × 2 rodzaje), losujemy bez powtórek
+  const all=[];
+  CASES.forEach(c=>{ all.push({c,t:'a'}); all.push({c,t:'b'}); });
+  return shuffle(all).slice(0,n).map(({c,t})=>{
+    const others = shuffle(CASES.filter(x=>x.id!==c.id)).slice(0,3);
+    if(t==='a') return {prompt:`Na jakie pytania odpowiada<br><span style="color:${color(c.id)}">${c.name}</span>?`, frame:'',
+        opts:shuffle([c,...others]).map(x=>({label:x.q, val:x.id, plain:true})), correct:c.id,
+        explain:`${c.name} → <b>${c.q}</b>`, mistake:`${c.name} – ${c.q}`};
+    return {prompt:`Który przypadek odpowiada na pytania<br><span class="hl">${c.q}</span>?`, frame:'',
+        opts:shuffle([c,...others]).map(x=>({label:x.name, val:x.id, col:x.id})), correct:c.id,
+        explain:`${c.q} → <b>${c.name}</b>`, mistake:`${c.q} – ${c.name}`};
+  });
+}
+
+function ask(){
+  const q = state.qs[state.i];
+  $app.innerHTML = `
+  <div class="card">
+    <div class="row">
+      <button class="btn light" onclick="menu()">← Menu</button>
+      <div class="hud"><span class="pill">Pytanie ${state.i+1}/${ROUND}</span><span class="pill">⭐ ${state.score}</span><span class="pill">🔥 ${state.streak}</span></div>
+    </div>
+    <div class="progress"><div style="width:${state.i/ROUND*100}%"></div></div>
+    <div class="question">${q.prompt}</div>
+    ${q.frame?`<div class="frame">${q.frame}</div>`:''}
+    <div class="answers">${q.opts.map((o,k)=>`
+      <button class="ans ${o.plain?'plain':''}" style="${o.col?`background:${color(o.col)}`:''}" data-k="${k}">
+        ${o.label}${o.sub?`<small>${o.sub}</small>`:''}</button>`).join('')}
+    </div>
+    <div id="fb" class="feedback"></div>
+    <div class="center" style="margin-top:14px"><button id="next" class="btn" style="display:none">Dalej →</button></div>
+  </div>`;
+  document.querySelectorAll('.ans').forEach(b=>b.onclick=()=>answer(+b.dataset.k));
+  document.getElementById('next').onclick = next;
+}
+
+const PRAISE = ['Brawo! 🎉','Super! 🌟','Świetnie! 💪','Tak trzymać! 🚀','Ekstra! 🦉','Doskonale! 🏆'];
+function answer(k){
+  const q = state.qs[state.i];
+  const chosen = q.opts[k];
+  const ok = chosen.val === q.correct;
+  document.querySelectorAll('.ans').forEach((b,j)=>{
+    b.disabled = true;
+    const o = q.opts[j];
+    if(o.val===q.correct) b.classList.add('right');
+    else if(j===k) b.classList.add('wrong');
+    else b.classList.add('dim');
+  });
+  const fb = document.getElementById('fb');
+  if(ok){
+    state.score++; state.streak++; state.best=Math.max(state.best,state.streak);
+    fb.className='feedback ok'; fb.innerHTML = `<b>${pick(PRAISE)}</b><br>${q.explain}`;
+    if(state.streak % 3 === 0) confetti(10);
+  } else {
+    state.streak=0; state.mistakes.push(q.mistake);
+    fb.className='feedback bad'; fb.innerHTML = `<b>Prawie! Spróbuj zapamiętać:</b><br>${q.explain}`;
+  }
+  document.getElementById('next').style.display='inline-block';
+}
+
+function next(){
+  state.i++;
+  if(state.i < ROUND) ask(); else finish();
+}
+
+function finish(){
+  const s = state.score;
+  const best = store('pp-best') || {};
+  const record = !best[state.mode] || s > best[state.mode];
+  if(record){ best[state.mode]=s; store('pp-best',best); }
+  const stars = s>=9?'⭐⭐⭐':s>=6?'⭐⭐':s>=3?'⭐':'💪';
+  const msg = s===10?'Mistrzyni przypadków!':s>=8?'Bardzo dobrze!':s>=5?'Nieźle! Jeszcze trochę ćwiczenia.':'Zajrzyj do ściągi i spróbuj jeszcze raz!';
+  if(s>=8) confetti(40);
+  $app.innerHTML = `
+  <div class="card center">
+    <div class="big">${stars}</div>
+    <h2>${s} / ${ROUND} – ${msg}</h2>
+    <p>Najdłuższa seria: 🔥 ${state.best}${record&&s>0?' · <b>Nowy rekord!</b> 🏆':''}</p>
+    ${state.mistakes.length?`<div class="tip mistakes"><b>Do powtórki:</b><ul>${state.mistakes.map(m=>`<li>${m}</li>`).join('')}</ul></div>`:''}
+    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:12px">
+      <button class="btn" onclick="start('${state.mode}')">🔁 Jeszcze raz</button>
+      <button class="btn light" onclick="cheat()">📜 Ściąga</button>
+      <button class="btn light" onclick="menu()">🏠 Menu</button>
+    </div>
+  </div>`;
+}
+
+function confetti(n){
+  const em=['🎉','⭐','🌟','🎈','✨','🦉'];
+  for(let i=0;i<n;i++){
+    const d=document.createElement('div'); d.className='confetti'; d.textContent=pick(em);
+    d.style.left=Math.random()*100+'vw'; d.style.animationDelay=Math.random()*.6+'s';
+    document.body.appendChild(d); setTimeout(()=>d.remove(),3000);
+  }
+}
+
+menu();
+</script>
+</body>
+</html>
